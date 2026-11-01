@@ -8,35 +8,16 @@
 .service-image img[src*="#tile"],.project-card>img[src*="#tile"]{position:absolute;max-width:none;width:300%;height:200%;object-fit:fill;transition:filter .3s;left:0;top:0}.service-image img[src*="#tile=1"],.project-card>img[src*="#tile=1"]{left:-100%}.service-image img[src*="#tile=2"],.project-card>img[src*="#tile=2"]{left:-200%}.service-image img[src*="#tile=3"],.project-card>img[src*="#tile=3"]{top:-100%}.service-image img[src*="#tile=4"],.project-card>img[src*="#tile=4"]{left:-100%;top:-100%}.service-image img[src*="#tile=5"],.project-card>img[src*="#tile=5"]{left:-200%;top:-100%}.service-card:hover img[src*="#tile"],.project-card:hover>img[src*="#tile"]{transform:none;filter:brightness(1.06)}.about-visual:has(img[src*="#tile"]){overflow:hidden;height:475px}.about-visual>img[src*="#tile"]{position:absolute;width:300%;height:200%;max-width:none;object-fit:fill;top:0;left:0}.about-visual>img[src*="#tile=1"]{left:-100%}.about-visual>img[src*="#tile=2"]{left:-200%}.about-visual>img[src*="#tile=3"]{top:-100%}.about-visual>img[src*="#tile=4"]{top:-100%;left:-100%}.about-visual>img[src*="#tile=5"]{top:-100%;left:-200%}
 
 .arrow{font-family:"DM Sans",Arial,sans-serif!important;display:inline-block}[dir=rtl] .arrow{transform:scaleX(-1)}
-/* Prominent EF identity with room reserved for navigation. */
+/* Compact original navigation identity; prominent identity alongside the hero copy. */
 .navwrap{position:relative}
-.navbar{height:126px}
-.brand{gap:14px}
-.brand img{width:140px;height:100px}
-.brand>span{font-size:25px}
-.brand small{font-size:7.5px;letter-spacing:.4px}
-.footer-brand .brand{flex-wrap:wrap}
-.footer-brand .brand img{padding:5px;width:140px;height:100px}
-@media(max-width:1200px) and (min-width:1001px){.navbar{gap:12px}.brand{gap:10px}.brand img{width:122px;height:92px}.brand>span{font-size:22px}.brand small{font-size:6.5px}.navbar nav{gap:15px}.navtools{gap:12px}}
-@media(max-width:1000px){
- .navbar nav{display:none;position:absolute;z-index:30;top:100%;left:0;right:0;background:white;height:auto;padding:20px;box-shadow:0 15px 25px #102b461a;border-top:1px solid #e0e6ec}
- .navbar nav.open{display:flex;align-items:stretch;flex-direction:column;gap:0}
- .navbar nav>a{height:auto;font-size:14px;padding:13px 5px}
- .navbar nav>a[aria-current]:after{bottom:5px;right:auto;width:25px}
- .menu{display:block}
- .brand img{width:130px;height:96px}
- .brand>span{font-size:24px}
- .brand small{font-size:7px}
-}
-@media(max-width:760px){
- .navbar{height:154px;gap:12px}
- .brand{flex-direction:column;align-items:center;gap:0}
- .brand img{width:130px;height:92px}
- .brand>span{font-size:22px;text-align:center}
- .brand small{font-size:6.5px;letter-spacing:.2px;margin-top:4px}
- .navtools{gap:14px}
- .footer-brand .brand{align-items:flex-start}
- .footer-brand .brand img{width:150px;height:108px}
- .footer-brand .brand>span{font-size:25px;text-align:start}
-}
-@media(max-width:380px){.navbar{gap:8px}.navtools{gap:9px}.brand>span{font-size:20px}.brand small{font-size:6px}.language{font-size:10px}}
+@media(max-width:760px){.navbar nav{top:100%}}
+.hero-inner{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);align-items:center;gap:55px}
+.hero-copy{min-width:0}
+.hero-emblem{margin:0;padding:34px 28px 30px;background:#fff;border-radius:4px;box-shadow:0 24px 70px #03172c40;text-align:center;max-width:420px;width:100%;justify-self:end;direction:ltr}
+.hero-emblem img{width:100%;height:auto;object-fit:contain}
+.hero-emblem figcaption{color:var(--navy);font-family:Manrope,Arial,sans-serif;font-weight:800;font-size:30px;letter-spacing:2px;line-height:1.3;margin-top:20px}
+.hero-emblem figcaption span{display:block;font-family:'DM Sans','Noto Sans Arabic',Arial,sans-serif;font-size:8px;font-weight:600;letter-spacing:1px;margin-top:12px}
+@media(min-width:901px){.hero h1{font-size:clamp(44px,4.4vw,68px)}}
+@media(max-width:1200px) and (min-width:901px){.hero-inner{gap:35px}.hero-emblem{padding:25px 20px}.hero-emblem figcaption{font-size:24px}.hero-emblem figcaption span{font-size:6.5px}}
+@media(max-width:900px){.hero-inner{grid-template-columns:1fr;gap:40px;padding-bottom:85px;min-height:0}.hero-emblem{justify-self:center;max-width:330px;padding:25px}.hero-emblem figcaption{font-size:25px}.hero-emblem figcaption span{font-size:7px}.hero-note{bottom:25px}.hero{min-height:0}}
+@media(max-width:380px){.brand img{width:48px;height:40px}.brand>span{font-size:16px}.brand small{font-size:5.2px}.navtools{gap:10px}.navbar{gap:10px}.hero-emblem{padding:22px}.hero-emblem figcaption{font-size:23px}.hero-emblem figcaption span{font-size:6px}}
