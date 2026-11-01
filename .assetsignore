@@ -1,0 +1,15 @@
+# Also protect source/tooling if the dashboard still overrides assets with '.'.
+.git/
+.github/
+node_modules/
+.wrangler/
+dist/
+scripts/
+tests/
+.env
+.env.*
+README.md
+package.json
+package-lock.json
+wrangler.jsonc
+.gitignore

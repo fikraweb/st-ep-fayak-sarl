@@ -31,3 +31,9 @@ Le domaine officiel n’a pas été fourni : aucun domaine n’est inventé. Le 
 `npm test` utilise Playwright et `/usr/bin/chromium` (déjà présents dans cet environnement ; à installer séparément sur une autre machine). Vérifie les 8 pages en FR/AR sur desktop et mobile, le débordement horizontal, les filtres, l’ouverture de l’email, le menu et le changement de langue. Les commandes ne transmettent aucune demande réelle. Vérification de syntaxe : `node --check assets/app.js`.
 
 Aucun secret requis pour développer. Ne pas créer de worktree : travailler dans le checkout isolé existant.
+
+## Cloudflare Workers — déploiement automatique depuis GitHub
+
+Le fichier `wrangler.jsonc` configure le Worker `st-ep-fayak-sarl` et ses fichiers statiques. Dans Cloudflare : dépôt `fikraweb/st-ep-fayak-sarl`, branche de production `main`, builds activés, répertoire racine du dépôt, commande de build du tableau de bord vide et commande de déploiement **`npx wrangler deploy`**. Wrangler exécute automatiquement `npm run build`, qui prépare uniquement les fichiers publics dans `dist/`. Les scripts, tests et fichiers Git ne sont pas publiés.
+
+Retirer une éventuelle option `--assets .` saisie précédemment : elle remplace le répertoire défini par la configuration. Après connexion GitHub et sauvegarde de ces réglages, chaque push sur main déclenche le build Cloudflare. Vérifier le statut du deployment et son commit dans le tableau de bord ; un push Git réussi ne prouve pas que Cloudflare a publié la version.

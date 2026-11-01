@@ -1,1 +1,11 @@
-{"name":"ep-fayak-corporate","version":"1.0.0","private":true,"scripts":{"dev":"python3 -m http.server 3000 --bind 0.0.0.0","start":"python3 -m http.server 3000 --bind 0.0.0.0","test":"node tests/browser.cjs"}}
+{
+  "name": "ep-fayak-corporate",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "python3 -m http.server 3000 --bind 0.0.0.0",
+    "start": "python3 -m http.server 3000 --bind 0.0.0.0",
+    "test": "node tests/browser.cjs",
+    "build": "node scripts/build.mjs"
+  }
+}
