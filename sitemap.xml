@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Run SITE_URL=https://your-confirmed-domain node scripts/seo.mjs before publishing. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>
