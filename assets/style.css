@@ -21,3 +21,25 @@
 @media(max-width:1200px) and (min-width:901px){.hero-inner{gap:35px}.hero-emblem{padding:25px 20px}.hero-emblem figcaption{font-size:24px}.hero-emblem figcaption span{font-size:6.5px}}
 @media(max-width:900px){.hero-inner{grid-template-columns:1fr;gap:40px;padding-bottom:85px;min-height:0}.hero-emblem{justify-self:center;max-width:330px;padding:25px}.hero-emblem figcaption{font-size:25px}.hero-emblem figcaption span{font-size:7px}.hero-note{bottom:25px}.hero{min-height:0}}
 @media(max-width:380px){.brand img{width:48px;height:40px}.brand>span{font-size:16px}.brand small{font-size:5.2px}.navtools{gap:10px}.navbar{gap:10px}.hero-emblem{padding:22px}.hero-emblem figcaption{font-size:23px}.hero-emblem figcaption span{font-size:6px}}
+
+/* Clear company name and a legible signature throughout the identity. */
+.brand>span{font-size:21px;letter-spacing:.3px}
+.brand small{font-family:'DM Sans',Arial,sans-serif;font-size:10px;letter-spacing:.1px;line-height:1.5;max-width:230px;white-space:normal;margin-top:7px}
+.hero-company{font-family:Manrope,Arial,sans-serif;font-size:clamp(27px,2.65vw,40px);font-weight:800;letter-spacing:1px;line-height:1.3;color:#fff;margin-bottom:25px;text-shadow:0 2px 15px #06192d55}
+.hero-company:after{content:'';display:block;width:64px;height:3px;background:var(--red);margin-top:18px}
+.hero-slogan{font-size:clamp(14px,1.35vw,19px);font-weight:700;letter-spacing:.7px;line-height:1.7;color:#fff}
+.hero-emblem{padding-inline:8px}
+.hero-emblem figcaption{font-size:clamp(23px,2.1vw,32px);letter-spacing:.5px;font-weight:800}
+.hero-emblem figcaption span{font-size:clamp(14px,1.25vw,18px);line-height:1.8;letter-spacing:.1px;font-weight:700;margin-top:16px;text-wrap:balance}
+.footer-brand .brand{flex-wrap:wrap}
+.footer-brand .brand small{font-size:11px;line-height:1.8}
+@media(max-width:1100px) and (min-width:1001px){.navtools>.btn{display:none}}
+@media(max-width:1000px){
+ .navbar nav{display:none;position:absolute;z-index:30;top:100%;left:0;right:0;background:white;height:auto;padding:20px;box-shadow:0 15px 25px #102b461a;border-top:1px solid #e0e6ec}
+ .navbar nav.open{display:flex;align-items:stretch;flex-direction:column;gap:0}
+ .navbar nav>a{height:auto;font-size:14px;padding:13px 5px}
+ .navbar nav>a[aria-current]:after{bottom:5px;right:auto;width:25px}
+ .menu{display:block}
+}
+@media(max-width:760px){.navbar{height:98px}.brand>span{font-size:17px}.brand small{font-size:9px;max-width:180px;margin-top:5px}.hero-company{font-size:29px;letter-spacing:.3px}.hero-slogan{font-size:15px;letter-spacing:.15px}.hero-emblem figcaption{font-size:24px}.hero-emblem figcaption span{font-size:15px}.hero-emblem{max-width:360px}.footer-brand .brand>span{font-size:21px}}
+@media(max-width:380px){.navbar{gap:8px}.brand{gap:7px}.brand img{width:36px;height:34px}.brand>span{font-size:15px;letter-spacing:0}.brand small{font-size:9px;max-width:153px;letter-spacing:0}.navtools{gap:8px}.hero-company{font-size:25px}.hero-slogan{font-size:14px}.hero-emblem figcaption{font-size:22px}.hero-emblem figcaption span{font-size:14px}}
