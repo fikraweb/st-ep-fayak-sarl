@@ -8,8 +8,35 @@
 .service-image img[src*="#tile"],.project-card>img[src*="#tile"]{position:absolute;max-width:none;width:300%;height:200%;object-fit:fill;transition:filter .3s;left:0;top:0}.service-image img[src*="#tile=1"],.project-card>img[src*="#tile=1"]{left:-100%}.service-image img[src*="#tile=2"],.project-card>img[src*="#tile=2"]{left:-200%}.service-image img[src*="#tile=3"],.project-card>img[src*="#tile=3"]{top:-100%}.service-image img[src*="#tile=4"],.project-card>img[src*="#tile=4"]{left:-100%;top:-100%}.service-image img[src*="#tile=5"],.project-card>img[src*="#tile=5"]{left:-200%;top:-100%}.service-card:hover img[src*="#tile"],.project-card:hover>img[src*="#tile"]{transform:none;filter:brightness(1.06)}.about-visual:has(img[src*="#tile"]){overflow:hidden;height:475px}.about-visual>img[src*="#tile"]{position:absolute;width:300%;height:200%;max-width:none;object-fit:fill;top:0;left:0}.about-visual>img[src*="#tile=1"]{left:-100%}.about-visual>img[src*="#tile=2"]{left:-200%}.about-visual>img[src*="#tile=3"]{top:-100%}.about-visual>img[src*="#tile=4"]{top:-100%;left:-100%}.about-visual>img[src*="#tile=5"]{top:-100%;left:-200%}
 
 .arrow{font-family:"DM Sans",Arial,sans-serif!important;display:inline-block}[dir=rtl] .arrow{transform:scaleX(-1)}
-/* Keep the original EF identity prominent and readable at every viewport. */
-.brand{gap:12px}.brand img{width:86px;height:66px}.brand>span{font-size:23px}.brand small{font-size:7px;letter-spacing:.55px}.footer-brand .brand img{padding:4px;width:86px;height:66px}
-@media(max-width:1000px) and (min-width:761px){.brand img{width:72px;height:56px}.brand>span{font-size:20px}.brand small{font-size:6px}}
-@media(max-width:760px){.brand{gap:9px}.brand img{width:65px;height:50px}.brand>span{font-size:19px}.brand small{font-size:6px;letter-spacing:.15px}.footer-brand .brand img{width:76px;height:58px}.footer-brand .brand>span{font-size:21px}}
-@media(max-width:380px){.navbar{gap:10px}.navtools{gap:10px}.brand img{width:57px;height:46px}.brand>span{font-size:17px}.brand small{font-size:5.2px;letter-spacing:0}.language{font-size:10px}}
+/* Prominent EF identity with room reserved for navigation. */
+.navwrap{position:relative}
+.navbar{height:126px}
+.brand{gap:14px}
+.brand img{width:140px;height:100px}
+.brand>span{font-size:25px}
+.brand small{font-size:7.5px;letter-spacing:.4px}
+.footer-brand .brand{flex-wrap:wrap}
+.footer-brand .brand img{padding:5px;width:140px;height:100px}
+@media(max-width:1200px) and (min-width:1001px){.navbar{gap:12px}.brand{gap:10px}.brand img{width:122px;height:92px}.brand>span{font-size:22px}.brand small{font-size:6.5px}.navbar nav{gap:15px}.navtools{gap:12px}}
+@media(max-width:1000px){
+ .navbar nav{display:none;position:absolute;z-index:30;top:100%;left:0;right:0;background:white;height:auto;padding:20px;box-shadow:0 15px 25px #102b461a;border-top:1px solid #e0e6ec}
+ .navbar nav.open{display:flex;align-items:stretch;flex-direction:column;gap:0}
+ .navbar nav>a{height:auto;font-size:14px;padding:13px 5px}
+ .navbar nav>a[aria-current]:after{bottom:5px;right:auto;width:25px}
+ .menu{display:block}
+ .brand img{width:130px;height:96px}
+ .brand>span{font-size:24px}
+ .brand small{font-size:7px}
+}
+@media(max-width:760px){
+ .navbar{height:154px;gap:12px}
+ .brand{flex-direction:column;align-items:center;gap:0}
+ .brand img{width:130px;height:92px}
+ .brand>span{font-size:22px;text-align:center}
+ .brand small{font-size:6.5px;letter-spacing:.2px;margin-top:4px}
+ .navtools{gap:14px}
+ .footer-brand .brand{align-items:flex-start}
+ .footer-brand .brand img{width:150px;height:108px}
+ .footer-brand .brand>span{font-size:25px;text-align:start}
+}
+@media(max-width:380px){.navbar{gap:8px}.navtools{gap:9px}.brand>span{font-size:20px}.brand small{font-size:6px}.language{font-size:10px}}
