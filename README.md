@@ -17,9 +17,11 @@ Le serveur tourne sur le port 3000. Les bindings de `env.local` sont uniquement 
 
 ## Administration et galeries
 
-Voir **[ADMIN.md](ADMIN.md)** pour l’activation, les bindings, le mot de passe sécurisé, les tests et les sauvegardes. Accès : `/admin.html`. Les modifications de contenu et les nouvelles photos sont persistées en D1/Cloudinary et s’affichent au rechargement du site, sans nouveau déploiement.
+Voir **[ADMIN.md](ADMIN.md)** pour l’activation, les bindings, le mot de passe sécurisé, les tests et les sauvegardes. Accès : `/admin.html`. Les modifications de contenu, les nouvelles photos et vidéos sont persistées en D1/Cloudinary et s’affichent au rechargement du site, sans nouveau déploiement.
 
 Avant activation, le site public reste utilisable avec le contenu versionné et les trois photos de services fournies. La page admin signale la configuration manquante ; il n’y a pas de backend fictif ni de mot de passe par défaut. Le tableau de bord affiche des nombres de contenus réels, pas de trafic inventé.
+
+Vidéos : MP4/WebM jusqu’à 20 Mo, photos jusqu’à 8 Mo. Ajout depuis « Photos & vidéos », brouillon/publication et lecteur intégré sur la page du service. Aucun changement de table D1 nécessaire ; les couvertures restent des photos. Préférer MP4/H.264 pour une compatibilité large.
 
 ## Cloudflare
 

@@ -2,9 +2,9 @@
 
 ## Fonctionnement
 
-`/admin.html` (ou `/admin`) propose un dashboard FR/AR, la modification des textes et coordonnées, l’édition des 12 services et une galerie indépendante par service. Les photos peuvent être ajoutées, conservées en brouillon, publiées, légendées dans les deux langues, classées, choisies comme couverture et supprimées. Les visiteurs peuvent les agrandir et naviguer au clavier.
+`/admin.html` (ou `/admin`) propose un dashboard FR/AR, la modification des textes et coordonnées, l’édition des 12 services et une galerie photos/vidéos indépendante par service. Les médias peuvent être ajoutés, conservés en brouillon, publiés, légendés dans les deux langues, classés et supprimés. Seules les photos peuvent servir de couverture. Les visiteurs peuvent les agrandir et naviguer au clavier.
 
-Le site et son API restent sur Cloudflare Workers. **Les images sont stockées sur Cloudinary ; aucun abonnement R2 n’est nécessaire.** La base D1 `ep-fayak-cms`, déjà créée et liée dans `wrangler.jsonc`, conserve les contenus, métadonnées, sessions et historique. Ses tables actuelles sont réutilisées sans nouvelle migration de schéma.
+Le site et son API restent sur Cloudflare Workers. **Les images et vidéos sont stockées sur Cloudinary ; aucun abonnement R2 n’est nécessaire.** La base D1 `ep-fayak-cms`, déjà créée et liée dans `wrangler.jsonc`, conserve les contenus, métadonnées, sessions et historique. Ses tables actuelles sont réutilisées sans nouvelle migration de schéma.
 
 Le tableau de bord compte des contenus réels, pas des visiteurs inventés. Les trois photos fournies (électricité, chauffage et piscine) restent les premières images de leurs galeries.
 
@@ -47,13 +47,21 @@ Les sessions utilisent des jetons aléatoires dont seul le hash est stocké en D
 
 ## Photos, confidentialité et suppression
 
-- JPG/PNG/WebP, 8 Mo maximum par fichier, jusqu’à 10 photos par envoi. Contrôle du type de fichier et limite de lecture côté serveur ; Cloudinary décode les images. Aucun SVG ou fichier arbitraire.
+- Images JPG/PNG/WebP : 8 Mo maximum. Vidéos MP4/WebM : 20 Mo maximum. Jusqu’à 10 fichiers par envoi. Contrôle du type de fichier et limite de lecture côté serveur ; Cloudinary décode les médias via la ressource image ou video correspondante. Aucun SVG ou fichier arbitraire.
 - Le Worker transmet les fichiers à l’API Cloudinary via HTTPS et une signature serveur. La clé secrète n’est jamais communiquée au navigateur.
 - Les brouillons et originaux Cloudinary sont de type `authenticated`. L’URL publique du site reste `/media/service/identifiant.ext` ; le Worker contrôle la publication en D1 et la session pour les brouillons.
 - La livraison utilise l’API officielle `private_download_url` de Cloudinary, avec une signature valable 60 secondes. Cette URL reste côté serveur ; le Worker transmet les octets au navigateur sans redirection et sans exposer une URL permanente du fournisseur. Pas de requête Cloudinary depuis le navigateur, pas de CORS à configurer.
 - Les réponses média du site sont `no-store` pour respecter rapidement les changements de publication. Les téléchargements Cloudinary, le transfert et les appels API comptent dans les quotas de votre offre.
 - La suppression est signée et confirmée par Cloudinary avant le retrait de la ligne D1. Si le fournisseur échoue, la photo reste dans la liste et l’administrateur peut réessayer. Un échec D1 après upload déclenche une suppression compensatoire du fichier.
 - Les photos initiales dans `assets/services` restent les couvertures d’origine : leur retrait de la galerie ne supprime pas les fichiers historiques dans GitHub. Conserver les originaux avant toute suppression. Un fichier déjà téléchargé par un visiteur ne peut pas être révoqué rétroactivement.
+
+## Vidéos dans les galeries
+
+Dans « Photos & vidéos », sélectionner un service, choisir les fichiers MP4/WebM et renseigner les légendes FR/AR. Les mêmes commandes de brouillon, publication, ordre et suppression s’appliquent. La galerie publique affiche un bouton de lecture ; le lecteur intégré dispose de commandes et s’arrête quand on ferme la fenêtre ou change de média. Les miniatures vidéo utilisent `preload="none"` et aucune lecture automatique.
+
+Préférer MP4 avec codec H.264 (et AAC si audio) pour une compatibilité large. WebM dépend aussi des codecs pris en charge par le navigateur. La limite de 20 Mo côté site s’ajoute aux quotas et limites du plan Cloudinary ; le traitement, le stockage et la livraison vidéo consomment les crédits de l’offre. Les vidéos restent de type authenticated et les clés ne vont pas dans le navigateur. La livraison transmet les requêtes HTTP Range et les réponses partielles du fournisseur pour permettre le déplacement dans la vidéo.
+
+**Aucun ALTER TABLE ni nouvelle migration D1 n’est nécessaire.** Le type du média est déterminé à partir de son extension validée dans la référence stockée (`.mp4` ou `.webm`), et le champ existant `object_key` reste compatible avec toutes les images déjà ajoutées. Une vidéo ne peut pas être choisie comme couverture d’image d’un service.
 
 ## D1 et déploiement
 
@@ -87,7 +95,7 @@ npm run build
 npm test
 ```
 
-La suite utilise un vrai D1 local et Chromium, avec un **simulateur de protocole Cloudinary isolé** : vérification indépendante des signatures d’upload, téléchargement privé et suppression ; authentification, CSRF, limites, publication, erreurs fournisseur, persistance des métadonnées après redémarrage, XSS et interfaces FR/AR desktop/mobile. Les 32 contrôles publics existants sont également exécutés. Aucun compte, secret ou fichier Cloudinary réel n’est utilisé par ces tests ; ils ne constituent pas une validation du compte de production. Playwright et Chromium sont déjà disponibles dans l’environnement de développement.
+La suite utilise un vrai D1 local et Chromium, avec un **simulateur de protocole Cloudinary isolé** : vérification indépendante des signatures d’upload image/vidéo, téléchargement privé, plages HTTP et suppression ; authentification, CSRF, limites, publication, erreurs fournisseur, persistance des métadonnées après redémarrage, XSS et interfaces FR/AR desktop/mobile. Des clips MP4/H.264 et WebM/VP9 réellement lisibles, générés uniquement pour les tests, vérifient la lecture, le déplacement dans le clip, la fermeture et l’ajout de vidéo depuis le dashboard. Les 32 contrôles publics existants sont également exécutés. Aucun compte, secret ou fichier Cloudinary réel n’est utilisé par ces tests ; ils ne constituent pas une validation du compte de production. Playwright et Chromium sont déjà disponibles dans l’environnement de développement.
 
 `npm run dev:static` ne fournit pas l’API admin. Le pré-rendu français se fait avec `node scripts/prerender.cjs` sur un serveur local utilisant le contenu d’origine ; ne pas pré-rendre une base de production dans Git. Le frontend charge les contenus enregistrés à chaque ouverture de page.
 

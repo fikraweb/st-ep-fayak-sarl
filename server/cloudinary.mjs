@@ -17,52 +17,55 @@ async function signed(env, params) {
   const signature = hex(await crypto.subtle.digest('SHA-1', encoder.encode(payload + env.CLOUDINARY_API_SECRET)));
   return { ...values, api_key: env.CLOUDINARY_API_KEY, signature };
 }
-function endpoint(env, action) {
-  return `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/image/${action}`;
+function endpoint(env, action, resourceType='image') {
+  return `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/${resourceType}/${action}`;
 }
 function reference(key) {
-  const match = key.match(/^([a-z]+)\/([a-f0-9-]{36})\.(jpg|png|webp)$/);
-  if (!match) unavailable('Référence de photo invalide.');
-  return { publicId: `ep-fayak/${match[1]}/${match[2]}`, format: match[3] };
+  const match = key.match(/^([a-z]+)\/([a-f0-9-]{36})\.(jpg|png|webp|mp4|webm)$/);
+  if (!match) unavailable('Référence de média invalide.');
+  return { publicId: `ep-fayak/${match[1]}/${match[2]}`, format: match[3], resourceType: ['mp4','webm'].includes(match[3])?'video':'image' };
 }
-async function post(env, action, params, file) {
+async function post(env, action, params, file, resourceType='image') {
   const fields = await signed(env, { ...params, timestamp: Math.floor(Date.now() / 1000) });
   const body = new FormData();
   for (const [key,value] of Object.entries(fields)) body.set(key, String(value));
   if (file) body.set('file', file.blob, file.name);
   let response;
-  try { response = await fetch(endpoint(env,action), { method: 'POST', body, redirect: 'manual', signal: AbortSignal.timeout(30000) }); }
+  try { response = await fetch(endpoint(env,action,resourceType), { method: 'POST', body, redirect: 'manual', signal: AbortSignal.timeout(30000) }); }
   catch { unavailable(); }
   let result;
   try { result = await response.json(); } catch { unavailable(); }
   if (!response.ok) unavailable(response.status === 401 || response.status === 403
     ? 'Connexion Cloudinary refusée. Vérifiez les clés et le nom du cloud dans les paramètres du Worker.'
-    : 'Cloudinary a refusé l’opération. Vérifiez le format de la photo et les limites de votre compte.');
+    : 'Cloudinary a refusé l’opération. Vérifiez le format du fichier et les limites de votre compte.');
   return result;
 }
-export async function storePhoto(env, key, bytes, contentType) {
-  const { publicId,format } = reference(key);
-  const result = await post(env,'upload',{public_id: publicId, type: 'authenticated', format, overwrite: false},{blob: new Blob([bytes],{type:contentType}), name: `photo.${format}`});
-  if (result.public_id !== publicId || result.type !== 'authenticated' || result.resource_type !== 'image' || result.format !== format) unavailable('Réponse Cloudinary inattendue : la photo n’a pas été enregistrée dans la galerie.');
+export async function storeMedia(env, key, bytes, contentType) {
+  const { publicId,format,resourceType } = reference(key);
+  const result = await post(env,'upload',{public_id: publicId, type: 'authenticated', format, overwrite: false},{blob: new Blob([bytes],{type:contentType}), name: `media.${format}`},resourceType);
+  if (result.public_id !== publicId || result.type !== 'authenticated' || result.resource_type !== resourceType || result.format !== format) unavailable('Réponse Cloudinary inattendue : le fichier n’a pas été enregistré dans la galerie.');
 }
-export async function deletePhoto(env, key) {
-  const { publicId } = reference(key);
-  const result = await post(env,'destroy',{public_id: publicId, type: 'authenticated', invalidate: true});
+export async function deleteMedia(env, key) {
+  const { publicId,resourceType } = reference(key);
+  const result = await post(env,'destroy',{public_id: publicId, type: 'authenticated', invalidate: true},undefined,resourceType);
   if (!['ok','not found'].includes(result.result)) unavailable('La suppression Cloudinary n’a pas été confirmée. Réessayez.');
 }
-export async function getPhoto(env, key) {
-  const { publicId,format } = reference(key);
+export async function getMedia(env, key, range=null) {
+  const { publicId,format,resourceType } = reference(key);
   const timestamp = Math.floor(Date.now() / 1000);
   // Official private_download_url API. The signed URL stays on the server.
   const params = await signed(env,{public_id:publicId,format,type:'authenticated',attachment:false,timestamp,expires_at:timestamp+60});
-  const url = endpoint(env,'download')+'?'+new URLSearchParams(params);
+  const url = endpoint(env,'download',resourceType)+'?'+new URLSearchParams(params);
   let response;
-  try { response = await fetch(url,{redirect:'manual',signal:AbortSignal.timeout(30000)}); }
+  try { response = await fetch(url,{redirect:'manual',headers:range?{Range:range}:{},signal:AbortSignal.timeout(30000)}); }
   catch { unavailable(); }
   if (response.status === 404) return null;
+  if (response.status === 416) return {body:null,status:416,contentRange:response.headers.get('Content-Range')};
   if (!response.ok) unavailable();
   const type = response.headers.get('Content-Type')?.split(';')[0].trim();
-  const expected = format === 'jpg' ? 'image/jpeg' : `image/${format}`;
+  const expected = format === 'jpg' ? 'image/jpeg' : `${resourceType}/${format}`;
   if (type !== expected) { await response.body?.cancel(); unavailable('Format de livraison Cloudinary inattendu.'); }
-  return { body:response.body, contentType:expected };
+  const contentRange=response.headers.get('Content-Range');
+  if(response.status===206&&!/^bytes \d+-\d+\/\d+$/.test(contentRange||'')){await response.body?.cancel();unavailable();}
+  return {body:response.body,contentType:expected,status:response.status,contentRange};
 }

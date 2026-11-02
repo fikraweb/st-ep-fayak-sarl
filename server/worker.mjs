@@ -1,8 +1,9 @@
-import { storageConfigured, storePhoto, getPhoto, deletePhoto } from './cloudinary.mjs';
+import { storageConfigured, storeMedia, getMedia, deleteMedia } from './cloudinary.mjs';
 import { defaultServices, defaultPhotos } from './defaults.mjs';
 
 const ids = new Set(defaultServices.map(s => s.id));
 const MAX_IMAGE = 8 * 1024 * 1024;
+const MAX_VIDEO = 20 * 1024 * 1024;
 const SESSION_TTL = 8 * 60 * 60;
 const encoder = new TextEncoder();
 const hex = buffer => [...new Uint8Array(buffer)].map(n => n.toString(16).padStart(2, '0')).join('');
@@ -36,7 +37,7 @@ async function bodyJSON(request) {
   try { const value = JSON.parse(body); if (!value || typeof value !== 'object' || Array.isArray(value)) problem('JSON invalide.'); return value; }
   catch { problem('JSON invalide.'); }
 }
-const photoJSON = p => ({ id: p.id, service: p.service, url: p.url, captionFr: p.caption_fr, captionAr: p.caption_ar, published: Boolean(p.published), sortOrder: p.sort_order, bytes: p.bytes, createdAt: p.created_at });
+const photoJSON = p => ({ mediaType:/\.(mp4|webm)$/.test(p.url)?'video':'image',id: p.id, service: p.service, url: p.url, captionFr: p.caption_fr, captionAr: p.caption_ar, published: Boolean(p.published), sortOrder: p.sort_order, bytes: p.bytes, createdAt: p.created_at });
 async function publicContent(env, admin = false) {
   if (!env.DB) return { settings: {}, services: defaultServices, photos: defaultPhotos, configured: false };
   const [settings, services, photos] = await Promise.all([
@@ -80,6 +81,12 @@ function imageType(bytes) {
   if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return ['image/jpeg', 'jpg'];
   if ([137,80,78,71,13,10,26,10].every((v,i) => bytes[i] === v)) return ['image/png', 'png'];
   if (new TextDecoder().decode(bytes.slice(0,4)) === 'RIFF' && new TextDecoder().decode(bytes.slice(8,12)) === 'WEBP') return ['image/webp', 'webp'];
+  return null;
+}
+function videoType(bytes) {
+  const ascii=(start,end)=>new TextDecoder().decode(bytes.slice(start,end));
+  if(bytes.length>=16&&ascii(4,8)==='ftyp'&&/^(isom|iso[1-9]|mp41|mp42|avc1|M4V |dash|MSNV)$/.test(ascii(8,12)))return ['video/mp4','mp4'];
+  if([0x1a,0x45,0xdf,0xa3].every((v,i)=>bytes[i]===v)&&ascii(0,Math.min(bytes.length,512)).includes('webm'))return ['video/webm','webm'];
   return null;
 }
 const settingFields = { companyName: 100, sloganFr: 180, sloganAr: 180, heroTitleFr: 200, heroTitleAr: 200, heroDescriptionFr: 1000, heroDescriptionAr: 1000, aboutFr: 3000, aboutAr: 3000, phone1: 25, phone2: 25, email: 150, addressFr: 300, addressAr: 300 };
@@ -147,7 +154,7 @@ async function api(request, env, url) {
     for (const [key,limit] of Object.entries({ nameFr: 120,nameAr: 120,descriptionFr: 2000,descriptionAr: 2000 })) data[key] = text(body[key],limit,true);
     if (body.coverId) {
       const cover = await env.DB.prepare('SELECT url FROM photos WHERE id = ? AND service = ? AND published = 1').bind(body.coverId,service).first();
-      if (!cover) problem('La couverture doit être une photo publiée de ce service.');
+      if (!cover||/\.(mp4|webm)$/.test(cover.url)) problem('La couverture doit être une photo publiée de ce service, pas une vidéo.');
       data.image = cover.url;
     }
     await env.DB.prepare('INSERT INTO services (id,data,updated_at) VALUES (?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at').bind(service,JSON.stringify(data),Date.now()).run();
@@ -155,8 +162,8 @@ async function api(request, env, url) {
   }
   if (path === '/api/admin/photos' && request.method === 'POST') {
     if (!storageConfigured(env)) problem('Stockage Cloudinary à configurer.',503);
-    if (Number(request.headers.get('Content-Length')) > MAX_IMAGE + 50000) problem('Photo : 8 Mo maximum.',413);
-    const body = await readLimited(request,MAX_IMAGE+50000);
+    if (Number(request.headers.get('Content-Length')) > MAX_VIDEO + 50000) problem('Fichier : 20 Mo maximum.',413);
+    const body = await readLimited(request,MAX_VIDEO+50000);
     let form;
     try { form = await new Response(body,{headers:{'Content-Type':request.headers.get('Content-Type')||''}}).formData(); }
     catch { problem('Formulaire invalide.'); }
@@ -165,16 +172,17 @@ async function api(request, env, url) {
     const captionFr = text(form.get('captionFr') || '',200,true);
     const captionAr = text(form.get('captionAr') || '',200,true);
     const file = form.get('file');
-    if (!file || typeof file.arrayBuffer !== 'function' || !file.size || file.size > MAX_IMAGE) problem('Photo invalide ou supérieure à 8 Mo.',413);
-    const bytes = new Uint8Array(await file.arrayBuffer()); const type = imageType(bytes);
-    if (!type) problem('Seuls JPG, PNG et WebP sont acceptés.');
+    if (!file || typeof file.arrayBuffer !== 'function' || !file.size || file.size > MAX_VIDEO) problem('Fichier invalide ou supérieur à 20 Mo.',413);
+    const bytes = new Uint8Array(await file.arrayBuffer()); const type = imageType(bytes)||videoType(bytes);
+    if (!type) {if(file.size>MAX_IMAGE)problem('Image : 8 Mo maximum. Vidéo : MP4/WebM, 20 Mo maximum.',413);problem('Formats acceptés : JPG, PNG, WebP, MP4 et WebM.');}
+    if(type[0].startsWith('image/')&&file.size>MAX_IMAGE)problem('Image : 8 Mo maximum.',413);
     const id = crypto.randomUUID(); const key = `${service}/${id}.${type[1]}`;
     const photoUrl = `/media/${key}`;
-    await storePhoto(env,key,bytes,type[0]);
+    await storeMedia(env,key,bytes,type[0]);
     try {
       await env.DB.prepare('INSERT INTO photos (id,service,object_key,url,caption_fr,caption_ar,published,sort_order,bytes,created_at) VALUES (?,?,?,?,?,?,?,0,?,?)').bind(id,service,'cloudinary:'+key,photoUrl,captionFr,captionAr,form.get('published') === 'true' ? 1 : 0,file.size,Date.now()).run();
-    } catch (error) { await deletePhoto(env,key); throw error; }
-    await log(env,`Photo ajoutée au service ${service}`); return json({ ok: true,id },201);
+    } catch (error) { await deleteMedia(env,key); throw error; }
+    await log(env,`${type[0].startsWith('video/')?'Vidéo ajoutée au service':'Photo ajoutée au service'} ${service}`); return json({ ok: true,id },201);
   }
   const photoId = path.match(/^\/api\/admin\/photos\/([a-z0-9-]+)$/)?.[1];
   if (photoId && ['PUT','DELETE'].includes(request.method)) {
@@ -196,11 +204,11 @@ async function api(request, env, url) {
     } else {
       if (photo.object_key) {
         if (!photo.object_key.startsWith('cloudinary:')) problem('Cette photo utilise un ancien stockage : migration nécessaire.',409);
-        await deletePhoto(env,photo.object_key.slice('cloudinary:'.length));
+        await deleteMedia(env,photo.object_key.slice('cloudinary:'.length));
       }
       await env.DB.prepare('DELETE FROM photos WHERE id=?').bind(photoId).run();
     }
-    await log(env,`Photo ${request.method === 'DELETE' ? 'supprimée' : 'mise à jour'} (${photo.service})`); return json({ ok: true });
+    await log(env,`${/\.(mp4|webm)$/.test(photo.url)?'Vidéo':'Photo'} ${request.method === 'DELETE' ? 'supprimée' : 'mise à jour'} (${photo.service})`); return json({ ok: true });
   }
   problem('Route introuvable.',404);
 }
@@ -208,15 +216,19 @@ async function media(request, env, url) {
   if (!['GET','HEAD'].includes(request.method)) return new Response(null,{status:405});
   if (!env.DB || !storageConfigured(env)) return new Response(null,{status:404});
   const key = url.pathname.slice('/media/'.length);
-  if (!/^[a-z]+\/[a-f0-9-]{36}\.(jpg|png|webp)$/.test(key)) return new Response(null,{status:404});
+  if (!/^[a-z]+\/[a-f0-9-]{36}\.(jpg|png|webp|mp4|webm)$/.test(key)) return new Response(null,{status:404});
   const row = await env.DB.prepare('SELECT published FROM photos WHERE object_key=?').bind('cloudinary:'+key).first();
   if (!row) return new Response(null,{status:404});
   if (!row.published) { try { await authenticated(request,env); } catch { return new Response(null,{status:404}); } }
-  const object = await getPhoto(env,key); if (!object) return new Response(null,{status:404});
+  const range=request.headers.get('Range');
+  if(range&&!/^bytes=(?:\d+-\d*|-\d+)$/.test(range))return new Response(null,{status:416});
+  const object = await getMedia(env,key,range); if (!object) return new Response(null,{status:404});
   const headers = new Headers({ 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store', 'Content-Security-Policy': "default-src 'none'" });
-  headers.set('Content-Type',object.contentType);
-  if (request.method === 'HEAD') { await object.body?.cancel(); return new Response(null,{headers}); }
-  return new Response(object.body,{headers});
+  if(object.contentType)headers.set('Content-Type',object.contentType);
+  headers.set('Accept-Ranges','bytes');
+  if(object.contentRange&&/^bytes (?:\d+-\d+|\*)\/\d+$/.test(object.contentRange))headers.set('Content-Range',object.contentRange);
+  if (request.method === 'HEAD') { await object.body?.cancel(); return new Response(null,{headers,status:object.status||200}); }
+  return new Response(object.body,{headers,status:object.status||200});
 }
 export default {
   async fetch(request, env) {

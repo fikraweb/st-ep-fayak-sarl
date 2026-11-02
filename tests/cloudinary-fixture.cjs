@@ -9,8 +9,8 @@ function createCloudinaryFixture() {
   const fetch=async request=>{state.requests++;try{
     const url=new URL(request.url);
     assert.equal(url.origin,'https://api.cloudinary.com');
-    assert.match(url.pathname,/^\/v1_1\/test-cloud\/image\/(upload|download|destroy)$/);
-    const action=url.pathname.split('/').pop();
+    assert.match(url.pathname,/^\/v1_1\/test-cloud\/(image|video)\/(upload|download|destroy)$/);
+    const action=url.pathname.split('/').pop(),resourceType=url.pathname.split('/')[3];
     const params=action==='download'?Object.fromEntries(url.searchParams):Object.fromEntries(await request.formData());
     assert.equal(params.api_key,key);
     const {api_key,signature,file,...signed}=params;
@@ -24,12 +24,13 @@ function createCloudinaryFixture() {
       assert.equal(params.overwrite,'false');
       assert.ok(file&&file.size>0);
       const bytes=new Uint8Array(await file.arrayBuffer());
-      files.set(params.public_id,{bytes,type:file.type,format:params.format});
-      return Response.json({public_id:params.public_id,type:'authenticated',resource_type:'image',format:params.format,bytes:bytes.byteLength,version:1,secure_url:'https://res.cloudinary.com/not-used'});
+      files.set(params.public_id,{bytes,type:file.type,format:params.format,resourceType});
+      return Response.json({public_id:params.public_id,type:'authenticated',resource_type:resourceType,format:params.format,bytes:bytes.byteLength,version:1,secure_url:'https://res.cloudinary.com/not-used'});
     }
     if(action==='destroy') {
       assert.equal(params.invalidate,'true');
       if(state.destroyFailure)return Response.json({error:{message:'destroy failed'}},{status:503});
+      if(files.has(params.public_id))assert.equal(files.get(params.public_id).resourceType,resourceType);
       return Response.json({result:files.delete(params.public_id)?'ok':'not found'});
     }
     state.downloads++;
@@ -38,8 +39,10 @@ function createCloudinaryFixture() {
     if(state.downloadFailure)return new Response(null,{status:503});
     const found=files.get(params.public_id);
     if(!found)return new Response(null,{status:404});
-    assert.equal(params.format,found.format);
-    return new Response(found.bytes,{headers:{'Content-Type':found.type}});
+    assert.equal(params.format,found.format);assert.equal(resourceType,found.resourceType);
+    const range=request.headers.get('Range');
+    if(range){const match=range.match(/^bytes=(\d*)-(\d*)$/);assert.ok(match);const length=found.bytes.length,start=match[1]?Number(match[1]):Math.max(0,length-Number(match[2])),end=match[1]?(match[2]?Math.min(length-1,Number(match[2])):length-1):length-1;if(start>=length||start>end)return new Response(null,{status:416,headers:{'Content-Range':`bytes */${length}`}});return new Response(found.bytes.slice(start,end+1),{status:206,headers:{'Content-Type':found.type,'Content-Range':`bytes ${start}-${end}/${length}`,'Content-Length':String(end-start+1)}})}
+    return new Response(found.bytes,{headers:{'Content-Type':found.type,'Content-Length':String(found.bytes.length)}});
   }catch(error){state.lastFailure=error.message;throw error}};
   return {bindings,fetch,files,state};
 }

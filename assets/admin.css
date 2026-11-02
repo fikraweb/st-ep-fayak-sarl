@@ -6,3 +6,4 @@
 .upload-details{margin-top:20px}
 
 .password-setup{margin:24px 0;padding:18px;background:#fff;border:1px solid var(--border);border-radius:6px}.password-setup summary{cursor:pointer;font-size:13px;font-weight:700}.password-setup[open] summary{margin-bottom:14px}.password-copy{margin-top:15px}.password-setup .error{margin-top:15px}.password-setup-status{overflow-wrap:anywhere}
+.photo-card>video{display:block;width:100%;height:190px;object-fit:contain;background:#0b2239}@media(max-width:760px){.photo-card>video{height:250px}}
