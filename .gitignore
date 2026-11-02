@@ -5,3 +5,6 @@ test-results/
 
 dist/
 .wrangler/
+
+.dev.vars*
+.wrangler-test*

@@ -1,39 +1,49 @@
-# Sté EP FAYAK SARL — site corporate
+# Sté EP FAYAK SARL — site corporate FR/AR
 
-Site statique multipage français/arabe, sans dépendances de production. HTML sémantique, CSS responsive et JavaScript natif. Aucun npm install nécessaire.
+Site multipage HTML/CSS/JavaScript, avec Worker Cloudflare, espace administrateur, D1 et galeries R2. Pages : accueil, entreprise, 12 services et leurs détails/galeries, portfolio illustratif, demande de devis, contact, mentions légales et administration.
 
-## Démarrer
+## Développement
 
-Depuis ce dépôt : `npm run dev`, puis ouvrir le port 3000. Python 3 et Node 18+ suffisent. Le serveur Python est uniquement destiné au développement ; publier les fichiers sur un hébergeur statique HTTPS.
+Node 22+ et npm ; depuis le checkout existant (ne pas créer de worktree) :
 
-Pages : accueil, entreprise, 12 services et leurs détails, galerie filtrable, devis, contact, mentions légales. `?lang=ar` active l’arabe et le RTL, `?lang=fr` le français. Les liens conservent la langue. Aucun framework ou changement de stack existante (le dépôt initial ne contenait qu’un README).
+```sh
+npm ci
+npm run db:local
+npm run admin:password -- --local
+npm run dev
+```
+
+Le serveur tourne sur le port 3000. Les bindings de `env.local` sont uniquement locaux. Pour simplement inspecter le site sans backend : `npm run dev:static`. Les tâches cloud sont déjà isolées ; les fichiers utilisateurs existants et secrets locaux doivent être conservés.
+
+## Administration et galeries
+
+Voir **[ADMIN.md](ADMIN.md)** pour l’activation, les bindings, le mot de passe sécurisé, les tests et les sauvegardes. Accès : `/admin.html`. Les modifications de contenu et les nouvelles photos sont persistées en D1/R2 et s’affichent au rechargement du site, sans nouveau déploiement.
+
+Avant activation, le site public reste utilisable avec le contenu versionné et les trois photos de services fournies. La page admin signale la configuration manquante ; il n’y a pas de backend fictif ni de mot de passe par défaut. Le tableau de bord affiche des nombres de contenus réels, pas de trafic inventé.
+
+## Cloudflare
+
+Le fichier `wrangler.jsonc` définit le Worker `st-ep-fayak-sarl`. Cloudflare Builds : dépôt `fikraweb/st-ep-fayak-sarl`, production `main`, commande de build du tableau de bord vide, commande de déploiement **`npx wrangler deploy`**. Ne pas utiliser `--assets .`. Wrangler lance `npm run build`, qui copie uniquement les fichiers publics dans `dist/`. Les scripts, tests, sources Worker, fichiers Git et secrets ne sont pas des assets publics.
+
+D1 (binding `DB`), R2 (`PHOTOS`) et le secret `ADMIN_PASSWORD_HASH` doivent être configurés dans le compte Cloudflare pour activer l’administration. Les identifiants réels ne sont pas inventés ; la configuration de production n’inclut aucun binding factice. Après création, conserver les bindings réels dans wrangler.jsonc pour les déploiements suivants. Le compte nécessite R2 activé. Un push réussi ne prouve pas la réussite d’un déploiement : vérifier son statut dans Cloudflare.
 
 ## Contenu et identité
 
-Le contenu bilingue et les 12 services sont centralisés dans `assets/app.js`. Styles dans `assets/style.css`. Logo issu du PDF commercial fourni, nettoyé pour retirer le trait noir parasite au-dessus du monogramme EF et agrandi dans l’en-tête et le pied de page. Les visuels locaux WebP combinent des illustrations générées par IA et trois photographies fournies pour les services électricité, chauffage central et piscines. La galerie reste illustrative, sans prétention de représenter des réalisations documentées de l’entreprise. Remplacer la galerie uniquement avec des photos et références autorisées. La planche d’illustrations est cadrée par CSS en 6 vignettes ; aucun chargement d’image externe.
+Le contenu initial est dans `assets/app.js`, les métadonnées de services/galeries initiales dans `server/defaults.mjs`. Le CMS remplace ces valeurs lorsqu’un contenu est enregistré. Le logo du document fourni a été nettoyé, rendu transparent et conservé dans ses couleurs rouge et violet. Les visuels d’illustration sont générés par IA ; les trois photos d’électricité, chauffage central et piscine ont été fournies pour leurs services. La galerie générale reste illustrative. Aucun client, projet, date ou ancienneté n’est inventé.
 
-Polices libres locales DM Sans, Manrope et Noto Sans Arabic ; licences OFL incluses dans `assets/fonts`. Aucun tracking ni service tiers automatiquement chargé. Google Maps et WhatsApp ne s’ouvrent que via leurs liens. L’adresse est une recherche indicative, pas un emplacement précis certifié.
+Polices locales DM Sans, Manrope, Noto Sans Arabic (licences OFL dans `assets/fonts`). Pas de publicité ni de mesure de trafic. L’administration utilise un cookie de session strictement nécessaire. Les services externes Maps/WhatsApp s’ouvrent uniquement depuis leurs liens. La localisation Maps reste une recherche indicative.
 
-## Réception des demandes de devis
+## Demande de devis
 
-Par défaut, le formulaire valide les champs, prépare un lien `mailto:` et ouvre la messagerie du visiteur. **Le visiteur doit envoyer le message et joindre son fichier manuellement.** Aucune confirmation de réception fictive, aucun stockage ou backend intégré. Les coordonnées restent dans le formulaire en cas d’échec API.
+Le formulaire prépare un email : le visiteur doit ouvrir sa messagerie, envoyer le message et joindre son fichier manuellement. Aucun envoi automatique ni stockage serveur des devis n’est activé. Pour une réception directe, configurer `quoteEndpoint` dans `assets/config.js` avec une API HTTPS acceptant multipart/form-data : `name`, `phone`, `email`, `city`, `service`, `description`, `attachment`, `consent`. Côté API : destinataire, validation, taille 10 Mo, CORS, antispam et rétention. Aucun secret ne doit être placé dans le frontend. Tester la réception réelle avant publication de cette option. Les coordonnées administrables actualisent la destination du mailto.
 
-Pour un envoi direct, créer un point de réception HTTPS (API ou service acceptant multipart/form-data et les pièces jointes), puis renseigner `quoteEndpoint` dans `assets/config.js`. Il doit accepter `name`, `phone`, `email`, `city`, `service`, `description`, `attachment`, `consent`, autoriser l’origine du site (CORS), et renvoyer une réponse HTTP 2xx uniquement après réception réelle. Configurer côté service le destinataire EP.FAYAK@GMAIL.COM, la validation, la limite de fichiers de 10 Mo, la protection antispam, les types autorisés, la rétention et les notifications. Ne placer aucun secret dans le frontend. Tester une demande réelle et la réception du fichier avant publication. Le navigateur bloque les fichiers > 10 Mo ; le serveur doit aussi les valider.
+## SEO et validations
 
-## SEO et publication
+Le domaine officiel doit être confirmé : `SITE_URL=https://DOMAINE-OFFICIEL node scripts/seo.mjs` génère sitemap.xml et robots.txt. Le sitemap initial est vide, sans domaine inventé. Compléter l’hébergeur dans les mentions légales et confirmer les identifiants officiels avant publication. Titres et descriptions sont bilingues. Après une modification du frontend, `node scripts/prerender.cjs` (serveur local actif, Playwright requis) actualise le HTML français de départ ; ne pas utiliser une base de production pour pré-rendre des contenus dans Git.
 
-Les pages ont des titres, descriptions et Open Graph traduits. Pour les robots sans JavaScript, exécuter le pré-rendu après modification du contenu : `node scripts/prerender.cjs` (serveur actif sur le port 3000 ; Playwright requis). Le HTML français rendu reste présent avant hydratation et l’arabe est activé via la langue demandée.
+```sh
+npm run build
+npm test
+```
 
-Le domaine officiel n’a pas été fourni : aucun domaine n’est inventé. Le `sitemap.xml` initial est volontairement vide. **Avant publication**, exécuter `SITE_URL=https://DOMAINE-OFFICIEL node scripts/seo.mjs` pour générer les 38 URL bilingues et les liens hreflang, ainsi que robots.txt. Configurer également l’URL absolue de l’image Open Graph sur l’hébergeur. Fournir le nom et les coordonnées de l’hébergeur dans les mentions légales et confirmer les identifiants administratifs avec la société. Ils sont issus des informations fournies et concordent avec le PDF, sans vérification dans un registre officiel.
-
-## Validation
-
-`npm test` utilise Playwright et `/usr/bin/chromium` (déjà présents dans cet environnement ; à installer séparément sur une autre machine). Vérifie les 8 pages en FR/AR sur desktop et mobile, le débordement horizontal, les filtres, l’ouverture de l’email, le menu et le changement de langue. Les commandes ne transmettent aucune demande réelle. Vérification de syntaxe : `node --check assets/app.js`.
-
-Aucun secret requis pour développer. Ne pas créer de worktree : travailler dans le checkout isolé existant.
-
-## Cloudflare Workers — déploiement automatique depuis GitHub
-
-Le fichier `wrangler.jsonc` configure le Worker `st-ep-fayak-sarl` et ses fichiers statiques. Dans Cloudflare : dépôt `fikraweb/st-ep-fayak-sarl`, branche de production `main`, builds activés, répertoire racine du dépôt, commande de build du tableau de bord vide et commande de déploiement **`npx wrangler deploy`**. Wrangler exécute automatiquement `npm run build`, qui prépare uniquement les fichiers publics dans `dist/`. Les scripts, tests et fichiers Git ne sont pas publiés.
-
-Retirer une éventuelle option `--assets .` saisie précédemment : elle remplace le répertoire défini par la configuration. Après connexion GitHub et sauvegarde de ces réglages, chaque push sur main déclenche le build Cloudflare. Vérifier le statut du deployment et son commit dans le tableau de bord ; un push Git réussi ne prouve pas que Cloudflare a publié la version.
+La suite admin utilise de vrais moteurs locaux Cloudflare D1/R2 et Chromium ; elle inclut les contrôles publics FR/AR desktop/mobile, formulaires, navigation et upload/publication de photos. Les photos originales et les données de production ne sont jamais modifiées par les tests. Playwright et Chromium sont déjà présents dans cet environnement ; sur une nouvelle machine, installer ces outils pour les contrôles navigateur.

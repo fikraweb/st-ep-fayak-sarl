@@ -3,9 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "python3 -m http.server 3000 --bind 0.0.0.0",
-    "start": "python3 -m http.server 3000 --bind 0.0.0.0",
-    "test": "node tests/browser.cjs",
-    "build": "node scripts/build.mjs"
+    "dev": "wrangler dev --env local --port 3000",
+    "start": "wrangler dev --env local --port 3000",
+    "test": "node --test tests/admin.test.cjs",
+    "build": "node scripts/build.mjs",
+    "dev:static": "python3 -m http.server 3000 --bind 0.0.0.0",
+    "db:local": "wrangler d1 migrations apply ep-fayak-cms --local --env local",
+    "test:browser": "node tests/browser.cjs",
+    "admin:password": "node scripts/set-admin-password.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "4.156.1"
   }
 }

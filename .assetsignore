@@ -13,3 +13,7 @@ package.json
 package-lock.json
 wrangler.jsonc
 .gitignore
+server/
+migrations/
+.dev.vars*
+ADMIN.md
