@@ -29,7 +29,9 @@ Aucun upload preset public/unsigned n’est nécessaire. Ne pas activer un accè
 
 ## Mot de passe administrateur
 
-Aucun mot de passe par défaut n’est créé. Depuis un terminal personnel connecté à votre compte Cloudflare :
+Aucun mot de passe par défaut n’est créé. **Sans terminal** : ouvrir `/admin.html` sur le site HTTPS, déplier « Créer mon mot de passe administrateur », saisir et confirmer un mot de passe de 14 caractères minimum, puis « Préparer mon empreinte » et « Copier la valeur pour Cloudflare ». Le calcul reste dans le navigateur ; ni le mot de passe ni son dérivé ne sont envoyés par cette opération. Coller la valeur copiée directement dans le Secret `ADMIN_PASSWORD_HASH` du Worker dans Cloudflare, enregistrer/appliquer et cliquer « Vérifier à nouveau ». Pour se connecter, utiliser le mot de passe choisi, pas la valeur PBKDF2. Ne partager ni la valeur copiée ni le mot de passe dans le chat. L’outil ne permet pas de définir le secret côté serveur : seules les personnes ayant accès au compte Cloudflare peuvent le faire.
+
+**Alternative en terminal**, depuis une machine personnelle connectée au compte Cloudflare :
 
 ```sh
 npm ci
