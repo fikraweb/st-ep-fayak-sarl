@@ -1,75 +1,73 @@
-# Administration EP FAYAK
+# Administration EP FAYAK — D1 + Cloudinary
 
-## Capacités
+## Fonctionnement
 
-`/admin.html` (ou `/admin`) propose un tableau de bord FR/AR, la modification des informations générales, coordonnées, titres et descriptions, l’édition des 12 services, et la gestion d’une galerie indépendante par service. Les photos peuvent être ajoutées (jusqu’à 10 par envoi), conservées en brouillon, publiées, légendées en deux langues, classées, utilisées comme couverture et supprimées. Les visiteurs peuvent agrandir les images, naviguer au clavier et fermer avec Échap.
+`/admin.html` (ou `/admin`) propose un dashboard FR/AR, la modification des textes et coordonnées, l’édition des 12 services et une galerie indépendante par service. Les photos peuvent être ajoutées, conservées en brouillon, publiées, légendées dans les deux langues, classées, choisies comme couverture et supprimées. Les visiteurs peuvent les agrandir et naviguer au clavier.
 
-Le tableau de bord affiche des données réelles : nombre de services, photos publiées/brouillons, taille des fichiers ajoutés, état des bindings et dernières modifications. Il n’invente pas de visiteurs ou de trafic. Les trois photographies fournies (électricité, chauffage et piscine) démarrent les galeries correspondantes. Aucun projet, date, client ou lieu n’est inventé.
+Le site et son API restent sur Cloudflare Workers. **Les images sont stockées sur Cloudinary ; aucun abonnement R2 n’est nécessaire.** La base D1 `ep-fayak-cms`, déjà créée et liée dans `wrangler.jsonc`, conserve les contenus, métadonnées, sessions et historique. Ses tables actuelles sont réutilisées sans nouvelle migration de schéma.
 
-## Architecture
+Le tableau de bord compte des contenus réels, pas des visiteurs inventés. Les trois photos fournies (électricité, chauffage et piscine) restent les premières images de leurs galeries.
 
-- Worker `server/worker.mjs` : API même origine, authentification, publication et service des images.
-- D1, binding **DB** : textes, services, métadonnées des photos, sessions et historique.
-- R2 privé, binding **PHOTOS** : fichiers téléversés. Aucun accès public R2 ni CORS R2 à activer ; les fichiers passent par `/media/…` et seuls les éléments publiés sont visibles sans connexion.
-- Secret Worker **ADMIN_PASSWORD_HASH** : dérivé PBKDF2 SHA-256 (100 000 itérations, sel aléatoire) ; jamais de mot de passe dans le code ou le navigateur.
-- Cookie de session HttpOnly / Secure / SameSite=Strict, expiration 8 h, révocation à la déconnexion. Une modification du secret invalide les sessions existantes.
-- Mutations protégées par session, contrôle Origin et en-tête dédié ; limitation des connexions (5 tentatives par IP / 15 minutes). SQL paramétré ; textes rendus sans HTML utilisateur.
-- Photos JPG/PNG/WebP seulement, signatures de fichiers vérifiées ; 8 Mo maximum, lecture du corps limitée côté serveur. Pas de SVG ou de fichiers arbitraires. Les images ne sont pas redimensionnées automatiquement ; préparer des photos raisonnables pour le web.
+## Activer Cloudinary depuis les tableaux de bord
 
-Le site public reste fonctionnel et affiche les galeries initiales tant que le backend n’est pas activé. La page admin indique les éléments manquants et n’accepte aucune connexion fictive. Une indisponibilité DB conduit à l’affichage du contenu versionné d’origine côté public ; les écritures échouent explicitement.
+1. Créer un compte Cloudinary avec le plan adapté à l’usage souhaité. Vérifier les limites du plan gratuit (stockage, requêtes et transferts) ; aucun quota illimité n’est promis.
+2. Dans le tableau de bord Cloudinary, ouvrir les informations du **Product environment** et les **API Keys**. Identifier **Cloud name**, **API Key** et **API Secret**. Ne pas envoyer les clés dans le chat ou les copier dans GitHub.
+3. Dans Cloudflare : **Workers & Pages → st-ep-fayak-sarl → Settings → Variables and Secrets**, ajouter :
 
-## Activation initiale sur votre compte Cloudflare
+| Nom | Type | Valeur à saisir dans Cloudflare |
+| --- | --- | --- |
+| `CLOUDINARY_CLOUD_NAME` | Text | Cloud name de votre environnement Cloudinary |
+| `CLOUDINARY_API_KEY` | Secret | API Key Cloudinary |
+| `CLOUDINARY_API_SECRET` | Secret | API Secret Cloudinary |
+| `ADMIN_PASSWORD_HASH` | Secret | Dérivé du mot de passe administrateur, voir ci-dessous |
 
-Ces opérations créent des ressources dans **votre compte**. R2 doit être activé dans Cloudflare ; consulter les tarifs/quotas de votre offre. Ne partagez aucun mot de passe ou token dans le chat. Le dépôt est prêt, mais aucun compte Cloudflare ni secret de production n’est fourni par ce code.
+Enregistrer/appliquer ces paramètres au Worker de production et ouvrir `/api/admin/status`. `database`, `storage` et `password` doivent être `true` pour activer la connexion. `storage` signifie que les trois paramètres sont renseignés : une première photo confirme ensuite les droits et la connectivité réels de Cloudinary. Une mauvaise clé produit une erreur explicite sans fausse réussite.
 
-Dans un terminal où vous avez accès à votre compte Cloudflare, depuis le checkout :
+La configuration `keep_vars: true` préserve le Cloud name défini dans le tableau de bord lors des déploiements Git suivants ; les clés restent des secrets Cloudflare. Aucune valeur de clé n’est définie dans le code ou les fichiers publics. Garder le bon Product environment Cloudinary et les mêmes secrets pour retrouver les fichiers téléversés.
+
+Aucun upload preset public/unsigned n’est nécessaire. Ne pas activer un accès public au stockage : le backend effectue des uploads **signés**, de type **authenticated**. Les images initiales versionnées dans le dépôt restent des assets publics ; elles n’ont pas besoin de Cloudinary.
+
+## Mot de passe administrateur
+
+Aucun mot de passe par défaut n’est créé. Depuis un terminal personnel connecté à votre compte Cloudflare :
 
 ```sh
 npm ci
 npx wrangler login
-npx wrangler d1 create ep-fayak-cms --location weur --update-config --binding DB
-npx wrangler r2 bucket create ep-fayak-photos --location weur --update-config --binding PHOTOS
-npx wrangler d1 migrations apply ep-fayak-cms --remote
 npm run admin:password
 ```
 
-`wrangler login` se fait dans votre navigateur sur votre machine, pas en échangeant un token ici. Si la base ou le bucket existent déjà, réutilisez-les ; ajoutez leurs bindings dans la configuration ci-dessous au lieu de recréer les ressources. Après création, vérifiez que les bindings ont été ajoutés **au niveau principal** de `wrangler.jsonc`, et pas à `env.local` :
+La saisie du mot de passe (14 à 256 caractères) est masquée ; le script calcule un dérivé PBKDF2 SHA-256 avec sel aléatoire et l’envoie au secret `ADMIN_PASSWORD_HASH`, sans afficher ou enregistrer le mot de passe dans le dépôt. Ne pas saisir un mot de passe en clair dans ce secret à la place du dérivé. Le secret ne doit pas devenir une variable publique dans `wrangler.jsonc` ou le JavaScript du navigateur.
 
-```json
-"d1_databases": [{
-  "binding": "DB",
-  "database_name": "ep-fayak-cms",
-  "database_id": "UUID-REEL-FOURNI-PAR-CLOUDFLARE",
-  "migrations_dir": "migrations"
-}],
-"r2_buckets": [{
-  "binding": "PHOTOS",
-  "bucket_name": "ep-fayak-photos"
-}]
-```
+Les sessions utilisent des jetons aléatoires dont seul le hash est stocké en D1 : cookie HttpOnly / Secure / SameSite=Strict, expiration 8 heures, révocation à la déconnexion et à la rotation du mot de passe. Les mutations vérifient Origin et un en-tête dédié. Les connexions sont limitées à 5 tentatives par IP sur 15 minutes.
 
-Le UUID D1 est un identifiant de ressource, pas un mot de passe. Les valeurs de `env.local` ne s’utilisent jamais en production. `npm run admin:password` demande deux fois un mot de passe fort de 14 caractères minimum, sans écho, et envoie uniquement son dérivé au secret Cloudflare via Wrangler. Aucun compte ou mot de passe par défaut n’existe. Aucun besoin de `SESSION_SECRET` supplémentaire : les sessions utilisent des jetons aléatoires dont seul le hash est conservé en D1.
+## Photos, confidentialité et suppression
 
-Enregistrez ensuite **uniquement la configuration sans secret** dans GitHub et poussez-la sur main. Cloudflare Builds doit utiliser :
+- JPG/PNG/WebP, 8 Mo maximum par fichier, jusqu’à 10 photos par envoi. Contrôle du type de fichier et limite de lecture côté serveur ; Cloudinary décode les images. Aucun SVG ou fichier arbitraire.
+- Le Worker transmet les fichiers à l’API Cloudinary via HTTPS et une signature serveur. La clé secrète n’est jamais communiquée au navigateur.
+- Les brouillons et originaux Cloudinary sont de type `authenticated`. L’URL publique du site reste `/media/service/identifiant.ext` ; le Worker contrôle la publication en D1 et la session pour les brouillons.
+- La livraison utilise l’API officielle `private_download_url` de Cloudinary, avec une signature valable 60 secondes. Cette URL reste côté serveur ; le Worker transmet les octets au navigateur sans redirection et sans exposer une URL permanente du fournisseur. Pas de requête Cloudinary depuis le navigateur, pas de CORS à configurer.
+- Les réponses média du site sont `no-store` pour respecter rapidement les changements de publication. Les téléchargements Cloudinary, le transfert et les appels API comptent dans les quotas de votre offre.
+- La suppression est signée et confirmée par Cloudinary avant le retrait de la ligne D1. Si le fournisseur échoue, la photo reste dans la liste et l’administrateur peut réessayer. Un échec D1 après upload déclenche une suppression compensatoire du fichier.
+- Les photos initiales dans `assets/services` restent les couvertures d’origine : leur retrait de la galerie ne supprime pas les fichiers historiques dans GitHub. Conserver les originaux avant toute suppression. Un fichier déjà téléchargé par un visiteur ne peut pas être révoqué rétroactivement.
 
-- Branche : `main`.
-- Commande de build du tableau de bord : vide (la configuration Wrangler lance le build).
-- Commande de déploiement : **`npx wrangler deploy`**, sans `--assets .`.
-- Le Worker garde le nom `st-ep-fayak-sarl` et sert uniquement le dossier `dist`.
+## D1 et déploiement
 
-Si vous préférez déployer directement depuis le terminal après activation : `npx wrangler deploy`. Les migrations de la base doivent être appliquées **avant** l’utilisation de l’administration. Les migrations futures sont additives ; ne supprimez pas les tables pour mettre à jour le site.
+La base de production `ep-fayak-cms` est déjà liée dans le dépôt et les tables ont été créées depuis la console Cloudflare. Ne pas recréer la base et ne pas supprimer les tables. Si l’on démarre sur un autre compte, il faut lier une base réelle sous le nom `DB` et appliquer `migrations/0001_admin.sql`.
 
-## Vérifier après activation
+Cloudflare Builds : branche **main**, commande de build du tableau de bord vide, commande de déploiement **`npx wrangler deploy`**, sans `--assets .`. Wrangler lance le build et ne publie que `dist/`. Les paramètres locaux de `env.local` ne doivent jamais remplacer le binding D1 de production.
 
-1. Ouvrir `/admin.html` : les trois prérequis doivent être actifs ; se connecter avec le mot de passe choisi.
-2. Ajouter une photo en brouillon à un service ; vérifier qu’elle est absente de la page publique dans une fenêtre privée.
-3. La publier et vérifier son affichage/agrandissement sur `service.html?id=…&lang=fr` et `lang=ar`.
-4. Enregistrer un texte, recharger la page publique et vérifier sa mise à jour.
-5. Se déconnecter ; l’API admin doit refuser l’accès. Les mises à jour ultérieures des contenus et photos ne nécessitent plus de push GitHub ni de redéploiement.
+La bascule depuis R2 ne change pas le schéma D1 : les nouvelles références Cloudinary sont préfixées `cloudinary:` dans `object_key`. Aucun fichier R2 réel n’a été fourni à cette intégration. Si une ancienne installation contient effectivement des fichiers R2, les sauvegarder et les migrer explicitement avant de retirer cet ancien stockage ; ils ne sont pas supprimés ni réinterprétés comme fichiers Cloudinary.
 
-Les anciennes photos versionnées dans `assets/services` restent des assets publics et couvertures d’origine : leur suppression du catalogue retire la vignette de la galerie, pas le fichier historique dans GitHub. La suppression d’une photo téléversée supprime aussi son objet R2 ; gardez une copie originale avant suppression. Un fichier déjà téléchargé par un visiteur ne peut pas être révoqué rétroactivement.
+## Vérifier l’activation
 
-## Développement et tests locaux
+1. Ouvrir `/admin.html` et se connecter une fois les trois prérequis affichés comme configurés.
+2. Ajouter une photo en brouillon et vérifier qu’elle est absente de la page publique dans une fenêtre privée.
+3. La publier et vérifier son affichage/agrandissement en FR et AR, puis la sélectionner comme couverture si souhaité.
+4. Masquer la photo et vérifier que son URL `/media/…` n’est plus accessible sans connexion.
+5. Vérifier la suppression d’une photo de test et la déconnexion. Les nouvelles photos et textes ne nécessitent ensuite aucun push GitHub ni redéploiement.
+
+## Développement et tests
 
 ```sh
 npm ci
@@ -78,17 +76,15 @@ npm run admin:password -- --local
 npm run dev
 ```
 
-La base et le bucket sont simulés localement par le runtime Cloudflare et persistent dans `.wrangler/`. Le secret local est écrit dans `.dev.vars.local` ignoré par Git (le script refuse d’écraser un fichier existant). Les données locales ne sont pas les données de production. Chaque tâche cloud est déjà isolée : utiliser le checkout existant, sans créer de worktree.
+La base D1 locale persiste dans `.wrangler/`. Les variables locales Cloudinary doivent être ajoutées dans `.dev.vars.local` **en dehors de Git**, sans écraser son contenu existant. Une utilisation interactive avec de vrais identifiants téléverse de vraies images Cloudinary même si D1 est local : préférer un Product environment séparé pour le développement. Les tâches cloud sont isolées ; utiliser le checkout existant sans créer de worktree.
 
 ```sh
 npm run build
 npm test
 ```
 
-La suite utilise les vrais moteurs locaux D1/R2 et Chromium. Elle vérifie les connexions, cookies, CSRF, throttling, textes, fichiers invalides, confidentialité des brouillons, publication/couverture, navigation des galeries, upload depuis le dashboard, XSS, FR/AR et mobile, conservation après redémarrage, suppression et déconnexion. Puis elle exécute les contrôles publics existants. Aucun envoi ou secret réel de production n’est utilisé. Playwright et `/usr/bin/chromium` sont disponibles dans l’environnement préparé ; sur une autre machine, les installer avant les tests.
+La suite utilise un vrai D1 local et Chromium, avec un **simulateur de protocole Cloudinary isolé** : vérification indépendante des signatures d’upload, téléchargement privé et suppression ; authentification, CSRF, limites, publication, erreurs fournisseur, persistance des métadonnées après redémarrage, XSS et interfaces FR/AR desktop/mobile. Les 32 contrôles publics existants sont également exécutés. Aucun compte, secret ou fichier Cloudinary réel n’est utilisé par ces tests ; ils ne constituent pas une validation du compte de production. Playwright et Chromium sont déjà disponibles dans l’environnement de développement.
 
-`npm run dev:static` permet seulement d’inspecter les pages statiques ; l’administration nécessite `npm run dev` et ses bindings locaux. Après modification du frontend public, le pré-rendu français peut être actualisé avec `node scripts/prerender.cjs` quand le serveur local est lancé. Ne pré-rendez pas une base de production dans les fichiers Git : le pré-rendu doit utiliser le contenu local d’origine. Les données récentes sont chargées à l’ouverture de chaque page.
+`npm run dev:static` ne fournit pas l’API admin. Le pré-rendu français se fait avec `node scripts/prerender.cjs` sur un serveur local utilisant le contenu d’origine ; ne pas pré-rendre une base de production dans Git. Le frontend charge les contenus enregistrés à chaque ouverture de page.
 
-## Sauvegarde et maintenance
-
-Conserver les originaux des photos. Utiliser les fonctions de sauvegarde/export D1 du compte et une politique de sauvegarde R2 adaptée. La suppression depuis la galerie est définitive pour les fichiers R2. La rotation du mot de passe se fait via `npm run admin:password`, puis le secret doit rester présent dans le Worker lors des prochains déploiements. Le secret n’est jamais un champ `vars` de wrangler.jsonc.
+Conserver les photos originales, sauvegarder D1 et prévoir une sauvegarde des médias adaptée aux options Cloudinary du compte. Garder les secrets exclusivement dans le gestionnaire Cloudflare et renouveler toute clé exposée accidentellement.

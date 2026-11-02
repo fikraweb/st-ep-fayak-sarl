@@ -27,12 +27,6 @@
           "database_id": "00000000-0000-0000-0000-000000000001",
           "migrations_dir": "migrations"
         }
-      ],
-      "r2_buckets": [
-        {
-          "binding": "PHOTOS",
-          "bucket_name": "ep-fayak-photos"
-        }
       ]
     }
   },
@@ -43,5 +37,6 @@
       "database_id": "fb3311e5-74e9-4f6d-a643-93f47df68e02",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "keep_vars": true
 }

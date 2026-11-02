@@ -1,3 +1,4 @@
+import { storageConfigured, storePhoto, getPhoto, deletePhoto } from './cloudinary.mjs';
 import { defaultServices, defaultPhotos } from './defaults.mjs';
 
 const ids = new Set(defaultServices.map(s => s.id));
@@ -98,7 +99,7 @@ async function api(request, env, url) {
   if (path === '/api/admin/status' && request.method === 'GET') {
     let database = false;
     if (env.DB) try { await env.DB.prepare('SELECT id FROM settings LIMIT 1').first(); database = true; } catch {}
-    return json({ ready: database && Boolean(env.PHOTOS) && Boolean(env.ADMIN_PASSWORD_HASH), database, storage: Boolean(env.PHOTOS), password: Boolean(env.ADMIN_PASSWORD_HASH) });
+    return json({ ready: database && storageConfigured(env) && Boolean(env.ADMIN_PASSWORD_HASH), database, storage: storageConfigured(env), password: Boolean(env.ADMIN_PASSWORD_HASH) });
   }
   if (path === '/api/admin/login' && request.method === 'POST') {
     originCheck(request);
@@ -131,7 +132,7 @@ async function api(request, env, url) {
   if (path === '/api/admin/dashboard' && request.method === 'GET') {
     const content = await publicContent(env,true);
     const activity = await env.DB.prepare('SELECT action,created_at FROM activity ORDER BY id DESC LIMIT 12').all();
-    return json({ ...content, activity: activity.results, storage: Boolean(env.PHOTOS), origin: url.origin });
+    return json({ ...content, activity: activity.results, storage: storageConfigured(env), origin: url.origin });
   }
   if (path === '/api/admin/settings' && request.method === 'PUT') {
     const data = validateSettings(await bodyJSON(request));
@@ -153,7 +154,7 @@ async function api(request, env, url) {
     await log(env,`Service ${service} mis à jour`); return json({ ok: true });
   }
   if (path === '/api/admin/photos' && request.method === 'POST') {
-    if (!env.PHOTOS) problem('Stockage R2 à configurer.',503);
+    if (!storageConfigured(env)) problem('Stockage Cloudinary à configurer.',503);
     if (Number(request.headers.get('Content-Length')) > MAX_IMAGE + 50000) problem('Photo : 8 Mo maximum.',413);
     const body = await readLimited(request,MAX_IMAGE+50000);
     let form;
@@ -169,10 +170,10 @@ async function api(request, env, url) {
     if (!type) problem('Seuls JPG, PNG et WebP sont acceptés.');
     const id = crypto.randomUUID(); const key = `${service}/${id}.${type[1]}`;
     const photoUrl = `/media/${key}`;
-    await env.PHOTOS.put(key,bytes,{ httpMetadata: { contentType: type[0] } });
+    await storePhoto(env,key,bytes,type[0]);
     try {
-      await env.DB.prepare('INSERT INTO photos (id,service,object_key,url,caption_fr,caption_ar,published,sort_order,bytes,created_at) VALUES (?,?,?,?,?,?,?,0,?,?)').bind(id,service,key,photoUrl,captionFr,captionAr,form.get('published') === 'true' ? 1 : 0,file.size,Date.now()).run();
-    } catch (error) { await env.PHOTOS.delete(key); throw error; }
+      await env.DB.prepare('INSERT INTO photos (id,service,object_key,url,caption_fr,caption_ar,published,sort_order,bytes,created_at) VALUES (?,?,?,?,?,?,?,0,?,?)').bind(id,service,'cloudinary:'+key,photoUrl,captionFr,captionAr,form.get('published') === 'true' ? 1 : 0,file.size,Date.now()).run();
+    } catch (error) { await deletePhoto(env,key); throw error; }
     await log(env,`Photo ajoutée au service ${service}`); return json({ ok: true,id },201);
   }
   const photoId = path.match(/^\/api\/admin\/photos\/([a-z0-9-]+)$/)?.[1];
@@ -193,8 +194,11 @@ async function api(request, env, url) {
       if (typeof body.published !== 'boolean' || !Number.isInteger(body.sortOrder) || Math.abs(body.sortOrder) > 10000) problem('Publication ou ordre invalide.');
       await env.DB.prepare('UPDATE photos SET caption_fr=?,caption_ar=?,published=?,sort_order=? WHERE id=?').bind(text(body.captionFr,200,true),text(body.captionAr,200,true),body.published ? 1 : 0,body.sortOrder,photoId).run();
     } else {
+      if (photo.object_key) {
+        if (!photo.object_key.startsWith('cloudinary:')) problem('Cette photo utilise un ancien stockage : migration nécessaire.',409);
+        await deletePhoto(env,photo.object_key.slice('cloudinary:'.length));
+      }
       await env.DB.prepare('DELETE FROM photos WHERE id=?').bind(photoId).run();
-      if (photo.object_key && env.PHOTOS) await env.PHOTOS.delete(photo.object_key);
     }
     await log(env,`Photo ${request.method === 'DELETE' ? 'supprimée' : 'mise à jour'} (${photo.service})`); return json({ ok: true });
   }
@@ -202,16 +206,17 @@ async function api(request, env, url) {
 }
 async function media(request, env, url) {
   if (!['GET','HEAD'].includes(request.method)) return new Response(null,{status:405});
-  if (!env.DB || !env.PHOTOS) return new Response(null,{status:404});
+  if (!env.DB || !storageConfigured(env)) return new Response(null,{status:404});
   const key = url.pathname.slice('/media/'.length);
   if (!/^[a-z]+\/[a-f0-9-]{36}\.(jpg|png|webp)$/.test(key)) return new Response(null,{status:404});
-  const row = await env.DB.prepare('SELECT published FROM photos WHERE object_key=?').bind(key).first();
+  const row = await env.DB.prepare('SELECT published FROM photos WHERE object_key=?').bind('cloudinary:'+key).first();
   if (!row) return new Response(null,{status:404});
   if (!row.published) { try { await authenticated(request,env); } catch { return new Response(null,{status:404}); } }
-  const object = await env.PHOTOS.get(key); if (!object) return new Response(null,{status:404});
+  const object = await getPhoto(env,key); if (!object) return new Response(null,{status:404});
   const headers = new Headers({ 'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'no-store', 'Content-Security-Policy': "default-src 'none'" });
-  object.writeHttpMetadata(headers); headers.set('ETag',object.httpEtag);
-  return new Response(request.method === 'HEAD' ? null : object.body,{headers});
+  headers.set('Content-Type',object.contentType);
+  if (request.method === 'HEAD') { await object.body?.cancel(); return new Response(null,{headers}); }
+  return new Response(object.body,{headers});
 }
 export default {
   async fetch(request, env) {

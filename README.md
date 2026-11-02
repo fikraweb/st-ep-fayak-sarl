@@ -1,6 +1,6 @@
 # Sté EP FAYAK SARL — site corporate FR/AR
 
-Site multipage HTML/CSS/JavaScript, avec Worker Cloudflare, espace administrateur, D1 et galeries R2. Pages : accueil, entreprise, 12 services et leurs détails/galeries, portfolio illustratif, demande de devis, contact, mentions légales et administration.
+Site multipage HTML/CSS/JavaScript, avec Worker Cloudflare, espace administrateur, D1 et galeries Cloudinary. Pages : accueil, entreprise, 12 services et leurs détails/galeries, portfolio illustratif, demande de devis, contact, mentions légales et administration.
 
 ## Développement
 
@@ -17,7 +17,7 @@ Le serveur tourne sur le port 3000. Les bindings de `env.local` sont uniquement 
 
 ## Administration et galeries
 
-Voir **[ADMIN.md](ADMIN.md)** pour l’activation, les bindings, le mot de passe sécurisé, les tests et les sauvegardes. Accès : `/admin.html`. Les modifications de contenu et les nouvelles photos sont persistées en D1/R2 et s’affichent au rechargement du site, sans nouveau déploiement.
+Voir **[ADMIN.md](ADMIN.md)** pour l’activation, les bindings, le mot de passe sécurisé, les tests et les sauvegardes. Accès : `/admin.html`. Les modifications de contenu et les nouvelles photos sont persistées en D1/Cloudinary et s’affichent au rechargement du site, sans nouveau déploiement.
 
 Avant activation, le site public reste utilisable avec le contenu versionné et les trois photos de services fournies. La page admin signale la configuration manquante ; il n’y a pas de backend fictif ni de mot de passe par défaut. Le tableau de bord affiche des nombres de contenus réels, pas de trafic inventé.
 
@@ -25,7 +25,7 @@ Avant activation, le site public reste utilisable avec le contenu versionné et 
 
 Le fichier `wrangler.jsonc` définit le Worker `st-ep-fayak-sarl`. Cloudflare Builds : dépôt `fikraweb/st-ep-fayak-sarl`, production `main`, commande de build du tableau de bord vide, commande de déploiement **`npx wrangler deploy`**. Ne pas utiliser `--assets .`. Wrangler lance `npm run build`, qui copie uniquement les fichiers publics dans `dist/`. Les scripts, tests, sources Worker, fichiers Git et secrets ne sont pas des assets publics.
 
-D1 (binding `DB`), R2 (`PHOTOS`) et le secret `ADMIN_PASSWORD_HASH` doivent être configurés dans le compte Cloudflare pour activer l’administration. Les identifiants réels ne sont pas inventés ; la configuration de production n’inclut aucun binding factice. Après création, conserver les bindings réels dans wrangler.jsonc pour les déploiements suivants. Le compte nécessite R2 activé. Un push réussi ne prouve pas la réussite d’un déploiement : vérifier son statut dans Cloudflare.
+D1 (binding `DB`) est lié à la base créée pour ce site. Les paramètres `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` et le secret `ADMIN_PASSWORD_HASH` doivent être configurés dans les paramètres du Worker pour activer l’administration. Les clés API sont des secrets, pas du code public. Aucun abonnement R2 n’est nécessaire. Les quotas Cloudinary dépendent du plan choisi. `keep_vars: true` préserve le Cloud name saisi dans le tableau de bord lors des prochains déploiements. Un push réussi ne prouve pas la réussite d’un déploiement : vérifier son statut dans Cloudflare.
 
 ## Contenu et identité
 
@@ -46,4 +46,4 @@ npm run build
 npm test
 ```
 
-La suite admin utilise de vrais moteurs locaux Cloudflare D1/R2 et Chromium ; elle inclut les contrôles publics FR/AR desktop/mobile, formulaires, navigation et upload/publication de photos. Les photos originales et les données de production ne sont jamais modifiées par les tests. Playwright et Chromium sont déjà présents dans cet environnement ; sur une nouvelle machine, installer ces outils pour les contrôles navigateur.
+La suite admin utilise un vrai D1 local, Chromium et un simulateur isolé du protocole signé Cloudinary (aucun compte de production) ; elle inclut les contrôles publics FR/AR desktop/mobile, formulaires, navigation et upload/publication de photos. Les photos originales et les données de production ne sont jamais modifiées par les tests. Playwright et Chromium sont déjà présents dans cet environnement ; sur une nouvelle machine, installer ces outils pour les contrôles navigateur.
