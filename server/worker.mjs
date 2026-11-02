@@ -100,6 +100,11 @@ function validateSettings(data) {
 }
 async function api(request, env, url) {
   const path = url.pathname;
+  if(path==='/api/quotes/status'&&request.method==='GET'){
+    let database=false;
+    if(env.DB)try{await env.DB.prepare('SELECT id FROM settings LIMIT 1').first();await env.DB.prepare('SELECT ip_hash FROM login_attempts LIMIT 1').first();await env.DB.prepare('SELECT id FROM services LIMIT 1').first();database=true}catch{}
+    return json({mode:'direct',configured:database&&quoteConfigured(env),database,destination:quoteDestination(env)});
+  }
   if(path==='/api/quotes'&&request.method==='POST'){
     originCheck(request);
     const saved=env.DB?await env.DB.prepare('SELECT id,data FROM services').all():{results:[]};

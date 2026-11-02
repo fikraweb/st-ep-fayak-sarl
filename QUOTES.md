@@ -36,3 +36,7 @@ Sans clé et expéditeur validés, l’envoi direct n’est pas activé. Les lie
 ## Validation
 
 `npm run build && npm test` vérifie un vrai D1 local avec un **simulateur Brevo isolé** : destinataire imposé, Reply-To, pièce jointe exacte, échappement HTML, consentement, champs, origine, doublons, erreurs fournisseur, limites et parcours navigateur FR/AR. Aucun email réel n’est envoyé par les tests. Le compte Brevo et la livraison réelle nécessitent la validation d’activation décrite ci-dessus.
+
+## Contrôler la version publiée
+
+Le site construit ajoute une empreinte de contenu aux URLs JavaScript/CSS pour actualiser les fichiers navigateur après une modification. `/version.json` expose la révision du build et l’empreinte des assets, sans secrets. `/api/quotes/status` est une vérification en lecture seule : `mode: "direct"`, `destination` et `configured`. `configured: true` indique la présence des tables et paramètres nécessaires, pas l’acceptation du compte par Brevo ni une preuve de livraison Gmail. Ces deux routes n’envoient aucun email. Si le site affiche encore « Préparer ma demande par email », vérifier le deployment actif de Cloudflare et sa révision Git, puis recharger la page sans cache.
