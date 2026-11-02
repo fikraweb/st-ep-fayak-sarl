@@ -38,5 +38,8 @@
       "migrations_dir": "migrations"
     }
   ],
-  "keep_vars": true
+  "keep_vars": true,
+  "vars": {
+    "CLOUDINARY_CLOUD_NAME": "jab5decd"
+  }
 }
