@@ -35,5 +35,13 @@
         }
       ]
     }
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ep-fayak-cms",
+      "database_id": "fb3311e5-74e9-4f6d-a643-93f47df68e02",
+      "migrations_dir": "migrations"
+    }
+  ]
 }
