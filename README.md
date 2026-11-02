@@ -10,7 +10,7 @@ Pages : accueil, entreprise, 12 services et leurs détails, galerie filtrable, d
 
 ## Contenu et identité
 
-Le contenu bilingue et les 12 services sont centralisés dans `assets/app.js`. Styles dans `assets/style.css`. Logo issu du PDF commercial fourni, nettoyé pour retirer le trait noir parasite au-dessus du monogramme EF et agrandi dans l’en-tête et le pied de page. Les visuels locaux WebP sont des illustrations générées par IA, sans aucune prétention de représenter les réalisations de l’entreprise. Remplacer la galerie uniquement avec des photos et références autorisées. La planche d’illustrations est cadrée par CSS en 6 vignettes ; aucun chargement d’image externe.
+Le contenu bilingue et les 12 services sont centralisés dans `assets/app.js`. Styles dans `assets/style.css`. Logo issu du PDF commercial fourni, nettoyé pour retirer le trait noir parasite au-dessus du monogramme EF et agrandi dans l’en-tête et le pied de page. Les visuels locaux WebP combinent des illustrations générées par IA et trois photographies fournies pour les services électricité, chauffage central et piscines. La galerie reste illustrative, sans prétention de représenter des réalisations documentées de l’entreprise. Remplacer la galerie uniquement avec des photos et références autorisées. La planche d’illustrations est cadrée par CSS en 6 vignettes ; aucun chargement d’image externe.
 
 Polices libres locales DM Sans, Manrope et Noto Sans Arabic ; licences OFL incluses dans `assets/fonts`. Aucun tracking ni service tiers automatiquement chargé. Google Maps et WhatsApp ne s’ouvrent que via leurs liens. L’adresse est une recherche indicative, pas un emplacement précis certifié.
 

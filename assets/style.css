@@ -43,3 +43,8 @@
 }
 @media(max-width:760px){.navbar{height:98px}.brand>span{font-size:17px}.brand small{font-size:9px;max-width:180px;margin-top:5px}.hero-company{font-size:29px;letter-spacing:.3px}.hero-slogan{font-size:15px;letter-spacing:.15px}.hero-emblem figcaption{font-size:24px}.hero-emblem figcaption span{font-size:15px}.hero-emblem{max-width:360px}.footer-brand .brand>span{font-size:21px}}
 @media(max-width:380px){.navbar{gap:8px}.brand{gap:7px}.brand img{width:36px;height:34px}.brand>span{font-size:15px;letter-spacing:0}.brand small{font-size:9px;max-width:153px;letter-spacing:0}.navtools{gap:8px}.hero-company{font-size:25px}.hero-slogan{font-size:14px}.hero-emblem figcaption{font-size:22px}.hero-emblem figcaption span{font-size:14px}}
+
+/* Keep the full portrait heating installation visible in its service detail. */
+.about-visual>img[src="assets/services/chauffage-central.webp"]{object-fit:contain;height:560px;background:#edf1f5}
+.service-image img[src="assets/services/chauffage-central.webp"]{object-position:center 40%}
+@media(max-width:760px){.about-visual>img[src="assets/services/chauffage-central.webp"]{height:500px}}
