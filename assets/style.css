@@ -54,3 +54,5 @@
 .navbar .brand{min-width:0;flex-shrink:1}.navbar .brand>span{min-width:0;overflow-wrap:anywhere}.navbar .brand img,.navbar .navtools{flex-shrink:0}.hero-company,.cms-multiline,.hero-description,.service-body h3,.service-body p,.about-copy p,.contact-info a,.contact-info p{overflow-wrap:anywhere}
 @media(max-width:760px){.navbar{height:auto;min-height:98px;padding-block:12px}.navbar .brand>span{max-width:190px}}
 .gallery-thumb video{display:block;width:100%;height:100%;object-fit:cover;background:#e6ecf2;pointer-events:none}.gallery-thumb .video-label{top:15px;bottom:auto;left:15px;right:auto;width:auto;height:auto;padding:5px 10px;font-size:10px;font-weight:700;letter-spacing:1px}.lightbox-content>video{width:100%;height:68vh;object-fit:contain;background:#051426}.lightbox-content>[hidden]{display:none!important}@media(max-width:760px){.lightbox-content>video{height:60vh}}
+
+.quote-trap{position:absolute;left:0;top:0;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);opacity:0;pointer-events:none}

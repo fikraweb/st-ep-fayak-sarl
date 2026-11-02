@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "wrangler dev --env local --port 3000",
     "start": "wrangler dev --env local --port 3000",
-    "test": "node --test tests/admin.test.cjs",
+    "test": "node --test --test-concurrency=1 tests/admin.test.cjs tests/quotes.test.cjs",
     "build": "node scripts/build.mjs",
     "dev:static": "python3 -m http.server 3000 --bind 0.0.0.0",
     "db:local": "wrangler d1 migrations apply ep-fayak-cms --local --env local",

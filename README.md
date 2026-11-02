@@ -37,7 +37,9 @@ Polices locales DM Sans, Manrope, Noto Sans Arabic (licences OFL dans `assets/fo
 
 ## Demande de devis
 
-Le formulaire prépare un email : le visiteur doit ouvrir sa messagerie, envoyer le message et joindre son fichier manuellement. Aucun envoi automatique ni stockage serveur des devis n’est activé. Pour une réception directe, configurer `quoteEndpoint` dans `assets/config.js` avec une API HTTPS acceptant multipart/form-data : `name`, `phone`, `email`, `city`, `service`, `description`, `attachment`, `consent`. Côté API : destinataire, validation, taille 10 Mo, CORS, antispam et rétention. Aucun secret ne doit être placé dans le frontend. Tester la réception réelle avant publication de cette option. Les coordonnées administrables actualisent la destination du mailto.
+La demande est envoyée directement par le Worker via Brevo à **EP.FAYAK@GMAIL.COM**, avec Reply-To vers le client et pièce jointe PDF/JPG/PNG (10 Mo). Plus de transfert automatique vers une application de messagerie. Voir **[QUOTES.md](QUOTES.md)** pour configurer le secret `BREVO_API_KEY` et l’expéditeur confirmé `BREVO_SENDER_EMAIL` dans Cloudflare. L’activation du fournisseur et une demande de test volontaire sont nécessaires pour vérifier la réception réelle. Le dashboard affiche l’état de configuration de l’envoi.
+
+Validation serveur, consentement, limite de tentatives et références anti-doublons, sans nouvelle migration D1. Le formulaire conserve ses champs en cas de refus ou d’envoi non confirmé et n’affiche aucune fausse réussite. Les tests utilisent un simulateur Brevo et n’envoient aucun email réel.
 
 ## SEO et validations
 

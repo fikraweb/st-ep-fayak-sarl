@@ -17,3 +17,4 @@ server/
 migrations/
 .dev.vars*
 ADMIN.md
+QUOTES.md

@@ -63,6 +63,10 @@ Préférer MP4 avec codec H.264 (et AAC si audio) pour une compatibilité large.
 
 **Aucun ALTER TABLE ni nouvelle migration D1 n’est nécessaire.** Le type du média est déterminé à partir de son extension validée dans la référence stockée (`.mp4` ou `.webm`), et le champ existant `object_key` reste compatible avec toutes les images déjà ajoutées. Une vidéo ne peut pas être choisie comme couverture d’image d’un service.
 
+## Réception des demandes de devis
+
+Le dashboard indique la configuration de l’envoi Brevo et l’adresse de réception. Les demandes sont envoyées directement par le serveur, avec Reply-To client et pièce jointe PDF/JPG/PNG de 10 Mo maximum. Consulter **[QUOTES.md](QUOTES.md)** pour la clé API, l’expéditeur confirmé et la vérification de réception Gmail. Aucune modification de tables D1 n’est nécessaire.
+
 ## D1 et déploiement
 
 La base de production `ep-fayak-cms` est déjà liée dans le dépôt et les tables ont été créées depuis la console Cloudflare. Ne pas recréer la base et ne pas supprimer les tables. Si l’on démarre sur un autre compte, il faut lier une base réelle sous le nom `DB` et appliquer `migrations/0001_admin.sql`.

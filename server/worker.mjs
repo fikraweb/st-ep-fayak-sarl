@@ -1,3 +1,4 @@
+import { quoteConfigured, quoteDestination, submitQuote } from './quotes.mjs';
 import { storageConfigured, storeMedia, getMedia, deleteMedia } from './cloudinary.mjs';
 import { defaultServices, defaultPhotos } from './defaults.mjs';
 
@@ -99,6 +100,13 @@ function validateSettings(data) {
 }
 async function api(request, env, url) {
   const path = url.pathname;
+  if(path==='/api/quotes'&&request.method==='POST'){
+    originCheck(request);
+    const saved=env.DB?await env.DB.prepare('SELECT id,data FROM services').all():{results:[]};
+    const overrides=new Map(saved.results.map(row=>[row.id,JSON.parse(row.data)]));
+    const services=defaultServices.map(service=>({...service,...overrides.get(service.id),id:service.id}));
+    return json(await submitQuote(request,env,{readLimited,services}));
+  }
   if (path === '/api/public' && request.method === 'GET') {
     try { return json(await publicContent(env)); }
     catch { return json({ settings: {}, services: defaultServices, photos: defaultPhotos, configured: false, unavailable: true }); }
@@ -106,7 +114,7 @@ async function api(request, env, url) {
   if (path === '/api/admin/status' && request.method === 'GET') {
     let database = false;
     if (env.DB) try { await env.DB.prepare('SELECT id FROM settings LIMIT 1').first(); database = true; } catch {}
-    return json({ ready: database && storageConfigured(env) && Boolean(env.ADMIN_PASSWORD_HASH), database, storage: storageConfigured(env), password: Boolean(env.ADMIN_PASSWORD_HASH) });
+    return json({ ready: database && storageConfigured(env) && Boolean(env.ADMIN_PASSWORD_HASH), database, storage: storageConfigured(env), password: Boolean(env.ADMIN_PASSWORD_HASH),quotes:quoteConfigured(env) });
   }
   if (path === '/api/admin/login' && request.method === 'POST') {
     originCheck(request);
@@ -139,7 +147,7 @@ async function api(request, env, url) {
   if (path === '/api/admin/dashboard' && request.method === 'GET') {
     const content = await publicContent(env,true);
     const activity = await env.DB.prepare('SELECT action,created_at FROM activity ORDER BY id DESC LIMIT 12').all();
-    return json({ ...content, activity: activity.results, storage: storageConfigured(env), origin: url.origin });
+    return json({ ...content, activity: activity.results, storage: storageConfigured(env), origin: url.origin,quotes:{configured:quoteConfigured(env),destination:quoteDestination(env)} });
   }
   if (path === '/api/admin/settings' && request.method === 'PUT') {
     const data = validateSettings(await bodyJSON(request));
@@ -245,7 +253,7 @@ export default {
       return response;
     } catch (error) {
       if (!error.status) console.error('CMS request failed', url.pathname, error.message);
-      return json({ error: error.status ? error.message : 'Service temporairement indisponible. Réessayez plus tard.' },error.status || 503);
+      return json({ error: error.status ? error.message : 'Service temporairement indisponible. Réessayez plus tard.',...(error.publicCode?{code:error.publicCode}:{}) },error.status || 503);
     }
   }
 };
